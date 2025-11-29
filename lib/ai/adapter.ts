@@ -1,10 +1,10 @@
-// AI Adapter: Handles both demo mode and live API calls
+// AI Adapter: Handles both demo mode and live API calls using Google Gemini
 import type { TransactionCategory, InsightType } from '@/types';
 import * as prompts from './prompts';
 import * as mocks from './mocks';
 
 const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-const openaiApiKey = process.env.OPENAI_API_KEY;
+const geminiApiKey = process.env.GEMINI_API_KEY;
 
 export interface CategorizationResult {
   category: TransactionCategory;
@@ -23,39 +23,61 @@ export interface GoalSuggestionResult {
 }
 
 class AIAdapter {
-  private async callOpenAI(
+  /**
+   * Call Google Gemini API for text generation
+   * Uses the Gemini 1.5 Flash model for fast, cost-effective responses
+   */
+  private async callGemini(
     prompt: string,
     systemPrompt?: string,
     jsonMode = false
   ): Promise<string> {
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!geminiApiKey) {
+      throw new Error('Gemini API key not configured');
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.3,
-        ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
-      }),
-    });
+    // Combine system prompt and user prompt for Gemini
+    const fullPrompt = systemPrompt 
+      ? `${systemPrompt}\n\n${prompt}` 
+      : prompt;
+
+    // Add JSON instruction if needed
+    const finalPrompt = jsonMode 
+      ? `${fullPrompt}\n\nRespond with valid JSON only, no additional text.`
+      : fullPrompt;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: finalPrompt }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.3,
+            maxOutputTokens: 1024,
+            ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+      throw new Error(`Gemini API error: ${error.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
-    return data.choices[0]?.message?.content || '';
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    return content;
   }
 
   async categorizeTransaction(
@@ -79,7 +101,7 @@ class AIAdapter {
         description: description || 'N/A',
       });
 
-      const response = await this.callOpenAI(prompt);
+      const response = await this.callGemini(prompt);
       const category = response.trim() as TransactionCategory;
 
       // Validate category
@@ -141,7 +163,7 @@ class AIAdapter {
         goalsSummary: goalsSummary || 'No active goals',
       });
 
-      const response = await this.callOpenAI(
+      const response = await this.callGemini(
         prompt,
         'You are a helpful financial advisor. Provide clear, actionable insights in plain language.'
       );
@@ -210,7 +232,7 @@ class AIAdapter {
         period,
       });
 
-      const response = await this.callOpenAI(prompt, undefined, true);
+      const response = await this.callGemini(prompt, undefined, true);
       const parsed = JSON.parse(response);
 
       return {
@@ -232,4 +254,3 @@ class AIAdapter {
 }
 
 export const aiAdapter = new AIAdapter();
-

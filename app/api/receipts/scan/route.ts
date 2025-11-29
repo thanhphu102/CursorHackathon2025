@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Create transaction from receipt
     const supabase = getSupabaseClient();
-    const transactionResult = await supabase.from('transactions').insert({
+    const transactionResult = supabase.from('transactions').insert({
       user_id: userId,
       amount: scanResult.total ? (-Math.abs(scanResult.total)).toString() : '0',
       currency: 'USD',

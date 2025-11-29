@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import Link from 'next/link';
@@ -15,12 +16,33 @@ const navItems = [
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const { user, isHydrated, logout } = useAuthStore();
+
+  useEffect(() => {
+    // Wait for hydration before checking auth
+    if (isHydrated && !user) {
+      router.push('/');
+    }
+  }, [user, isHydrated, router]);
 
   const handleLogout = () => {
     logout();
     router.push('/');
   };
+
+  // Show loading while hydrating
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render content if not authenticated
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -99,4 +121,3 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

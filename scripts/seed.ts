@@ -141,7 +141,7 @@ async function seed() {
   );
 
   if (!userExists) {
-    await db.from('users').insert({
+    db.from('users').insert({
       id: DEMO_USER_ID,
       name: 'Demo User',
       email: 'demo@example.com',
@@ -163,7 +163,7 @@ async function seed() {
     );
 
     if (!existing) {
-      await db.from('transactions').insert({
+      db.from('transactions').insert({
         user_id: transaction.userId,
         amount: transaction.amount.toString(),
         currency: transaction.currency,
@@ -182,7 +182,7 @@ async function seed() {
   if (goals.length === 0) {
     const deadline = new Date();
     deadline.setMonth(deadline.getMonth() + 6);
-    await db.from('goals').insert({
+    db.from('goals').insert({
       user_id: DEMO_USER_ID,
       title: 'Emergency Fund',
       target_amount: '10000',

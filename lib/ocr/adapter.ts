@@ -1,9 +1,9 @@
-// OCR Adapter: Handles Google Vision API and Tesseract.js fallback
+// OCR Adapter: Handles DeepSeek OCR API and Tesseract.js fallback
 import Tesseract from 'tesseract.js';
 import type { ReceiptScanResult } from '@/types';
 
 const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
-const googleVisionApiKey = process.env.GOOGLE_VISION_API_KEY;
+const deepseekApiKey = process.env.DEEPSEEK_API_KEY;
 
 /**
  * Mock OCR result for demo mode
@@ -24,55 +24,68 @@ function mockOCR(imageData: Buffer): ReceiptScanResult {
 }
 
 /**
- * Extract text using Google Vision API
+ * Extract text using DeepSeek OCR API (Vision-Language Model)
+ * DeepSeek's VL model can process images and extract text
  */
-async function extractWithGoogleVision(imageData: Buffer): Promise<string> {
-  if (!googleVisionApiKey) {
-    throw new Error('Google Vision API key not configured');
+async function extractWithDeepSeekOCR(imageData: Buffer): Promise<string> {
+  if (!deepseekApiKey) {
+    throw new Error('DeepSeek API key not configured');
   }
 
   // Convert image to base64
   const base64Image = imageData.toString('base64');
+  
+  // Determine image type (default to jpeg if unknown)
+  const imageType = detectImageType(imageData);
 
-  const response = await fetch(
-    `https://vision.googleapis.com/v1/images:annotate?key=${googleVisionApiKey}`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        requests: [
-          {
-            image: {
-              content: base64Image,
-            },
-            features: [
-              {
-                type: 'TEXT_DETECTION',
-                maxResults: 1,
+  const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${deepseekApiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',  // DeepSeek's vision-capable model
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/${imageType};base64,${base64Image}`,
               },
-            ],
-          },
-        ],
-      }),
-    }
-  );
+            },
+            {
+              type: 'text',
+              text: 'Please extract all text from this receipt image. Return the raw text exactly as it appears on the receipt, preserving the layout as much as possible. Include merchant name, items, prices, and total.',
+            },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 2000,
+    }),
+  });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(`Google Vision API error: ${error.error?.message || 'Unknown error'}`);
+    throw new Error(`DeepSeek OCR API error: ${error.error?.message || 'Unknown error'}`);
   }
 
   const data = await response.json();
-  const textAnnotations = data.responses[0]?.textAnnotations;
-  
-  if (!textAnnotations || textAnnotations.length === 0) {
-    return '';
-  }
+  return data.choices[0]?.message?.content || '';
+}
 
-  // Return full text (first annotation contains all text)
-  return textAnnotations[0].description || '';
+/**
+ * Detect image type from buffer magic bytes
+ */
+function detectImageType(buffer: Buffer): string {
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8) return 'jpeg';
+  if (buffer[0] === 0x89 && buffer[1] === 0x50) return 'png';
+  if (buffer[0] === 0x47 && buffer[1] === 0x49) return 'gif';
+  if (buffer[0] === 0x52 && buffer[1] === 0x49) return 'webp';
+  return 'jpeg'; // Default to jpeg
 }
 
 /**
@@ -169,16 +182,16 @@ export async function scanReceipt(imageFile: File | Buffer): Promise<ReceiptScan
     return mockOCR(imageData);
   }
 
-  // Try Google Vision first, fallback to Tesseract
+  // Try DeepSeek OCR first, fallback to Tesseract
   try {
-    const text = await extractWithGoogleVision(imageData);
+    const text = await extractWithDeepSeekOCR(imageData);
     if (text.trim().length > 0) {
       const result = parseReceiptText(text);
-      result.confidence = 0.9; // Higher confidence for Google Vision
+      result.confidence = 0.9; // Higher confidence for DeepSeek OCR
       return result;
     }
   } catch (error) {
-    console.warn('Google Vision API failed, falling back to Tesseract:', error);
+    console.warn('DeepSeek OCR API failed, falling back to Tesseract:', error);
   }
 
   // Fallback to Tesseract.js
@@ -199,4 +212,3 @@ export async function scanReceipt(imageFile: File | Buffer): Promise<ReceiptScan
     confidence: 0,
   };
 }
-

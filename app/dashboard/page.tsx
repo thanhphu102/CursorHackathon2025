@@ -30,14 +30,24 @@ interface Goal {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isHydrated } = useAuthStore();
   const [metrics, setMetrics] = useState<any>(null);
 
   useEffect(() => {
-    if (!user) {
+    // Wait for hydration before checking auth
+    if (isHydrated && !user) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, isHydrated, router]);
+
+  // Show loading while hydrating or if no user
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;

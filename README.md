@@ -24,7 +24,7 @@ A mobile-first web application that helps users manage their personal finances w
 
 ### 4. Receipt Scanner + AI Categorizer
 - Receipt upload via camera/file
-- OCR extraction (Google Vision API with Tesseract.js fallback)
+- OCR extraction (DeepSeek OCR API with Tesseract.js fallback)
 - Automatic transaction creation with merchant, total, and line items
 - AI-powered categorization (Food, Transport, Shopping, Bills, Entertainment, Others)
 
@@ -36,8 +36,8 @@ A mobile-first web application that helps users manage their personal finances w
 - **Backend**: Next.js API Routes (serverless functions)
 - **Database**: Supabase (PostgreSQL) with local dev fallback
 - **Authentication**: Supabase Auth (email) with demo mode
-- **AI**: OpenAI API (configurable, with mock layer)
-- **OCR**: Google Vision API with Tesseract.js fallback
+- **AI**: Google Gemini API (configurable, with mock layer)
+- **OCR**: DeepSeek OCR API with Tesseract.js fallback
 - **Storage**: Supabase Storage for receipts
 - **Testing**: Vitest + React Testing Library
 - **Tooling**: ESLint, Prettier
@@ -71,8 +71,8 @@ A mobile-first web application that helps users manage their personal finances w
 ### Prerequisites
 - Node.js 18+ and npm/yarn/pnpm
 - Supabase account (optional, demo mode works without it)
-- OpenAI API key (optional, demo mode works without it)
-- Google Cloud Vision API key (optional, Tesseract.js fallback available)
+- Google Gemini API key (optional, demo mode works without it)
+- DeepSeek API key (optional, Tesseract.js fallback available)
 
 ### Installation
 
@@ -97,11 +97,13 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# OpenAI (optional - demo mode works without)
-OPENAI_API_KEY=your_openai_api_key
+# Google Gemini API (optional - demo mode works without)
+# Get your key at: https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=your_gemini_api_key
 
-# Google Vision API (optional - Tesseract.js fallback available)
-GOOGLE_VISION_API_KEY=your_google_vision_api_key
+# DeepSeek OCR API (optional - Tesseract.js fallback available)
+# Get your key at: https://platform.deepseek.com/
+DEEPSEEK_API_KEY=your_deepseek_api_key
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -147,7 +149,7 @@ NEXT_PUBLIC_DEMO_MODE=true
 ```
 
 #### Live Mode
-- Requires API keys (OpenAI, Google Vision, Supabase)
+- Requires API keys (Gemini, DeepSeek, Supabase)
 - Real AI-powered insights and categorization
 - Live database connections
 - Production-ready features
@@ -155,8 +157,8 @@ NEXT_PUBLIC_DEMO_MODE=true
 To enable Live Mode:
 ```env
 NEXT_PUBLIC_DEMO_MODE=false
-OPENAI_API_KEY=your_key
-GOOGLE_VISION_API_KEY=your_key
+GEMINI_API_KEY=your_gemini_key
+DEEPSEEK_API_KEY=your_deepseek_key
 # ... other keys
 ```
 

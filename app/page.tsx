@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -9,7 +9,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const setUser = useAuthStore((state) => state.setUser);
+  const { user, isHydrated, setUser } = useAuthStore();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isHydrated && user) {
+      router.push('/dashboard');
+    }
+  }, [user, isHydrated, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
