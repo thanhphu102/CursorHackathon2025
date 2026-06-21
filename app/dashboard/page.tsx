@@ -33,16 +33,6 @@ export default function DashboardPage() {
   const { user } = useAuthStore();
   const [metrics, setMetrics] = useState<any>(null);
 
-  useEffect(() => {
-    if (!user) {
-      router.push('/');
-    }
-  }, [user, router]);
-
-  if (!user) {
-    return null;
-  }
-
   const { data: insightsData } = useQuery({
     queryKey: ['insights', user?.id],
     queryFn: async () => {
@@ -75,11 +65,21 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    if (!user) {
+      router.push('/');
+    }
+  }, [user, router]);
+
+  useEffect(() => {
     if (user?.id) {
       // Trigger subscription detection
       fetch(`/api/subscriptions/detect?userId=${user.id}`);
     }
   }, [user?.id]);
+
+  if (!user) {
+    return null;
+  }
 
   const insights: Insight[] = insightsData || [];
   const subscriptions: Subscription[] = subscriptionsData || [];
