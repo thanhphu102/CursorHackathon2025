@@ -27,7 +27,7 @@ class InMemoryDB {
     }
   }
 
-  async from(table: string) {
+  from(table: string) {
     const tableMap = this[table as keyof this] as Map<string, any>;
     const tableName = table;
     

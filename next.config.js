@@ -10,12 +10,6 @@ const nextConfig = {
       },
     ],
   },
-  // Allow API routes to handle larger file uploads (receipts)
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
 }
 
 module.exports = nextConfig
